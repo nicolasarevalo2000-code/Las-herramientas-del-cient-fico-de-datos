@@ -1,0 +1,155 @@
+---
+title: "Caso practico 2"
+author: "Nicolas Arevalo"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## 1. Cargar librerías
+
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+## 2. Cargar dataset
+
+```{r}
+df <- read.csv("C:/Users/Nicolas/Desktop/Maestria/Las herramientas del científico de datos/Entregable/Airbnb_Milan.csv",
+               stringsAsFactors = FALSE)
+
+head(df)
+```
+
+## 3. Crear nuevo dataframe
+
+```{r}
+df2 <- df %>%
+  select(
+    host_is_superhost,
+    host_identity_verified,
+    bathrooms,
+    bedrooms,
+    daily_price,
+    security_deposit,
+    minimum_nights,
+    number_of_reviews,
+    review_scores_rating
+  )
+
+head(df2)
+```
+
+## 4. Recodificar variables
+
+```{r}
+df2 <- df2 %>%
+  mutate(
+    host_is_superhost = recode(host_is_superhost,
+                               `0` = "NO",
+                               `1` = "SI"),
+    host_identity_verified = recode(host_identity_verified,
+                                    `0` = "NO VERIFICA",
+                                    `1` = "VERIFICA")
+  )
+
+summary(df2)
+```
+
+## 5. Filtrar mínimo de noches <= 7
+
+```{r}
+df_filtrado <- df2 %>%
+  filter(minimum_nights <= 7)
+
+nrow(df_filtrado)
+```
+
+## 6. Precio medio según verificación
+
+```{r}
+df2 %>%
+  group_by(host_identity_verified) %>%
+  summarise(precio_medio = mean(daily_price, na.rm = TRUE))
+```
+
+**RTA:** El precio medio es aproximadamente igual (~104€) para verificados y no verificados.
+
+## 7. Número medio de reseñas
+
+```{r}
+df2 %>%
+  group_by(host_is_superhost) %>%
+  summarise(media_reviews = mean(number_of_reviews, na.rm = TRUE))
+```
+
+**RTA:** Los Superhosts tienen más reseñas.
+
+## 8. Puntuación media
+
+```{r}
+df2 %>%
+  group_by(host_is_superhost) %>%
+  summarise(media_rating = mean(review_scores_rating, na.rm = TRUE))
+```
+
+**RTA:** Los Superhosts tienen mayor puntuación media.
+
+## 9. Crear variable CATEGORIA
+
+```{r}
+df2 <- df2 %>%
+  mutate(
+    CATEGORIA = case_when(
+      review_scores_rating >= 0 & review_scores_rating <= 49 ~ "NO ACONSEJABLE",
+      review_scores_rating >= 50 & review_scores_rating <= 75 ~ "ESTÁNDAR",
+      review_scores_rating >= 76 & review_scores_rating <= 100 ~ "TOP",
+      TRUE ~ NA_character_
+    )
+  )
+
+table(df2$CATEGORIA)
+```
+
+## 10. Histograma del precio diario
+
+```{r}
+ggplot(df2, aes(x = daily_price)) +
+  geom_histogram(fill = "steelblue", bins = 30) +
+  theme_minimal() +
+  labs(title = "Distribución del Precio Diario")
+```
+
+## 11. Relación dormitorios vs baños
+
+```{r}
+ggplot(df2, aes(x = bedrooms, y = bathrooms)) +
+  geom_point(alpha = 0.5, color = "darkgreen") +
+  theme_minimal() +
+  labs(title = "Relación entre Dormitorios y Baños")
+```
+
+## 12. Histograma reseñas por verificación
+
+```{r}
+ggplot(df2, aes(x = number_of_reviews, fill = host_identity_verified)) +
+  geom_histogram(bins = 30, alpha = 0.6, position = "identity") +
+  theme_minimal() +
+  labs(title = "Número de reseñas según verificación")
+```
+
+## 13. Depósito por categoría y superhost
+
+```{r}
+ggplot(df2, aes(x = security_deposit, fill = host_is_superhost)) +
+  geom_histogram(bins = 30, alpha = 0.6, position = "identity") +
+  facet_wrap(~CATEGORIA) +
+  theme_minimal() +
+  labs(title = "Depósito por Categoría y Superhost")
+```
+
+## Conclusión
+
+Los Superhosts presentan mayor número de reseñas y mejor puntuación media.  
+La verificación del perfil no influye significativamente en el precio medio diario.  
+La mayoría de los alojamientos pertenecen a la categoría TOP.
